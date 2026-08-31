@@ -52,15 +52,13 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildGeoCreateTable_ExcludesBusinessOnlyColumns() {
-        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of("theme_1", "theme_2"));
+        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of("custom_metric"));
 
         String geoDdl = builder.buildGeoCreateTable(metadata);
         String businessDdl = builder.buildBusinessCreateTable(metadata);
 
-        assertTrue(!geoDdl.contains("\"theme_1\""));
-        assertTrue(!geoDdl.contains("\"theme_2\""));
-        assertTrue(businessDdl.contains("\"theme_1\""));
-        assertTrue(businessDdl.contains("\"theme_2\""));
+        assertTrue(!geoDdl.contains("\"custom_metric\""));
+        assertTrue(businessDdl.contains("\"custom_metric\""));
     }
 
     @Test
@@ -73,10 +71,17 @@ class AreaOfInterestTableDdlBuilderTest {
         assertTrue(ddl.contains("\"centroid_coordinates\" geometry(Point, 4674)"));
         assertTrue(!ddl.contains("\"geom\""));
         assertTrue(ddl.contains("\"territory_level_3_id\""));
-        assertTrue(ddl.contains("\"theme_1\" numeric"));
-        assertTrue(ddl.contains("\"theme_2\" numeric"));
-        assertTrue(ddl.contains("\"theme_3\" numeric"));
-        assertTrue(ddl.contains("\"theme_4\" numeric"));
+        assertTrue(ddl.contains("\"area\" numeric"));
+        assertTrue(!ddl.contains("\"theme_1\""));
+    }
+
+    @Test
+    void buildBusinessCreateTable_AddsAreaColumnWhenSourceOmitsTotalArea() {
+        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutTotalArea(List.of());
+
+        String ddl = builder.buildBusinessCreateTable(metadata);
+
+        assertTrue(ddl.contains("\"area\" numeric"));
     }
 
     @Test
@@ -86,7 +91,7 @@ class AreaOfInterestTableDdlBuilderTest {
         String ddl = builder.buildBusinessCreateTable(metadata);
 
         assertTrue(ddl.contains("\"updated_at\" timestamptz"));
-        assertTrue(ddl.contains("\"theme_1\" numeric"));
+        assertTrue(ddl.contains("\"area\" numeric"));
     }
 
     @Test
@@ -97,6 +102,38 @@ class AreaOfInterestTableDdlBuilderTest {
 
         assertTrue(statements.stream().anyMatch(sql -> sql.contains("\"updated_at\" timestamptz")));
         assertTrue(statements.stream().anyMatch(sql -> sql.contains("_business_updated_at")));
+    }
+
+    private static AreaOfInterestTableMetadata sampleMetadataWithoutTotalArea(
+            List<String> businessOnlySourceColumns
+    ) {
+        List<ColumnMetadata> columns = new java.util.ArrayList<>(List.of(
+                new ColumnMetadata("id", "int8", null, null, null, false, false),
+                new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
+                new ColumnMetadata("updated_at", "timestamptz", null, null, null, false, false),
+                new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
+                new ColumnMetadata("geom", "geometry", null, null, null, true, true)
+        ));
+        for (String businessOnly : businessOnlySourceColumns) {
+            columns.add(new ColumnMetadata(businessOnly, "numeric", null, null, null, true, false));
+        }
+        return new AreaOfInterestTableMetadata(
+                "area_of_interest",
+                "chile-conservation-units",
+                new QualifiedTable("conservation", "conservation_units"),
+                new QualifiedTable("dsp", "area_of_interest"),
+                "id",
+                TemporalTestFixtures.timestamptz("creation_date"),
+                TemporalTestFixtures.timestamptz("updated_at"),
+                "territory_level_3_fk",
+                null,
+                "geom",
+                4674,
+                columns,
+                businessOnlySourceColumns,
+                List.of(),
+                "1=1"
+        );
     }
 
     private static AreaOfInterestTableMetadata sampleMetadataWithoutSourceUpdatedAt(

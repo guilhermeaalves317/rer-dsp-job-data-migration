@@ -103,7 +103,7 @@ public record AreaOfInterestTableMetadata(
         if (sourceColumnName.equals(territoryLevel3SourceColumn)) {
             return AreaOfInterestConfig.TERRITORY_LEVEL_3_ID_COLUMN;
         }
-        if (sourceColumnName.equals(totalAreaSourceColumn)) {
+        if (totalAreaSourceColumn != null && sourceColumnName.equals(totalAreaSourceColumn)) {
             return AreaOfInterestConfig.AREA_COLUMN;
         }
         if (sourceColumnName.equals(geometryColumn)) {

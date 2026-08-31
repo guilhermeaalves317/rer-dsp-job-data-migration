@@ -107,10 +107,10 @@ public class AreaOfInterestTableDdlBuilder {
             columnDefinitions.add(quote(targetColumnName) + " " + ddlType);
         }
         if (includeBusinessOnly) {
-            for (String theme : AreaOfInterestConfig.KPI_THEME_COLUMNS) {
-                if (emittedTargetColumns.add(theme)) {
-                    columnDefinitions.add(quote(theme) + " numeric");
-                }
+            if (!emittedTargetColumns.contains(AreaOfInterestConfig.AREA_COLUMN)
+                    && metadata.totalAreaSourceColumn() == null) {
+                columnDefinitions.add(quote(AreaOfInterestConfig.AREA_COLUMN) + " numeric");
+                emittedTargetColumns.add(AreaOfInterestConfig.AREA_COLUMN);
             }
             if (emittedTargetColumns.add(AreaOfInterestConfig.UPDATED_AT_COLUMN)) {
                 columnDefinitions.add(quote(AreaOfInterestConfig.UPDATED_AT_COLUMN) + " timestamptz");

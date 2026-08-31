@@ -79,7 +79,7 @@ public class AreaOfInterestIntrospectionService {
         String updatedAtColumnName = updatedAtColumn == null ? null : updatedAtColumn.sourceColumn();
         String territoryLevel3Column = requireConfiguredColumn(
                 allColumns, config.getTerritoryLevel3Column(), "territory-level-3-column");
-        String totalAreaColumn = requireConfiguredColumn(
+        String totalAreaColumn = resolveOptionalConfiguredColumn(
                 allColumns, config.getTotalAreaColumn(), "total-area-column");
         GeometryInfo geometryInfo = resolveGeometry(sourceJdbc, source, allColumns, config.getGeometryColumn());
 
@@ -205,7 +205,9 @@ public class AreaOfInterestIntrospectionService {
             orderedNames.add(updatedAtColumn);
         }
         orderedNames.add(territoryLevel3Column);
-        orderedNames.add(totalAreaColumn);
+        if (totalAreaColumn != null) {
+            orderedNames.add(totalAreaColumn);
+        }
         orderedNames.addAll(additionalColumns);
         orderedNames.addAll(businessOnlyColumns);
         orderedNames.add(geometryColumn);
@@ -296,8 +298,10 @@ public class AreaOfInterestIntrospectionService {
         rejectReservedNameCollision(
                 table, allColumns, TERRITORY_LEVEL_3_ID_COLUMN, territoryLevel3Column,
                 "territory-level-3-column");
-        rejectReservedNameCollision(
-                table, allColumns, AREA_COLUMN, totalAreaColumn, "total-area-column");
+        if (totalAreaColumn != null) {
+            rejectReservedNameCollision(
+                    table, allColumns, AREA_COLUMN, totalAreaColumn, "total-area-column");
+        }
         rejectGeomNameCollision(table, allColumns, geometryColumn);
 
         for (String additionalColumn : additionalColumns) {
@@ -324,7 +328,9 @@ public class AreaOfInterestIntrospectionService {
             migrated.add(updatedAtColumn);
         }
         migrated.add(territoryLevel3Column);
-        migrated.add(totalAreaColumn);
+        if (totalAreaColumn != null) {
+            migrated.add(totalAreaColumn);
+        }
         migrated.add(geometryColumn);
         migrated.addAll(additionalColumns);
         migrated.addAll(businessOnlyColumns);
@@ -562,6 +568,15 @@ public class AreaOfInterestIntrospectionService {
         }
 
         return new IndexMetadata(indexName, columns, method, unique);
+    }
+
+    private String resolveOptionalConfiguredColumn(List<ColumnMetadata> columns,
+                                                   String configured,
+                                                   String field) {
+        if (configured == null || configured.isBlank()) {
+            return null;
+        }
+        return requireConfiguredColumn(columns, configured, field);
     }
 
     private String requireConfiguredColumn(List<ColumnMetadata> columns,
