@@ -403,22 +403,6 @@ public class AreaOfInterestIntrospectionService {
         }
     }
 
-    private void rejectGeomNameCollision(QualifiedTable table,
-                                         List<ColumnMetadata> columns,
-                                         String geometryColumnName) {
-        if (GEOMETRY_COLUMN.equals(geometryColumnName)) {
-            return;
-        }
-        boolean conflict = columns.stream()
-                .anyMatch(column -> !column.geometry() && GEOMETRY_COLUMN.equals(column.name()));
-        if (conflict) {
-            throw new IllegalStateException(
-                    "Table " + table.qualified()
-                            + " has a non-geometry column named '" + GEOMETRY_COLUMN
-                            + "' while the geometry to migrate is '" + geometryColumnName + "'.");
-        }
-    }
-
     private WatermarkColumnSpec requireTemporalColumn(List<ColumnMetadata> columns,
                                                       String columnName,
                                                       AreaOfInterestConfig config,
