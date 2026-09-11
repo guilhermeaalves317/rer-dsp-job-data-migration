@@ -20,14 +20,6 @@ class AreaOfInterestConfigTest {
     }
 
     @Test
-    void validate_AcceptsBusinessOnlyPersistColumns() {
-        AreaOfInterestConfig config = baseConfig();
-        config.setBusinessOnlyPersistColumns(List.of("custom_metric"));
-
-        assertDoesNotThrow(config::validate);
-    }
-
-    @Test
     void validate_AcceptsMissingTotalAreaColumn() {
         AreaOfInterestConfig config = baseConfig();
         config.setTotalAreaColumn(null);
@@ -45,19 +37,9 @@ class AreaOfInterestConfigTest {
     }
 
     @Test
-    void validate_RejectsDuplicateBetweenAdditionalAndBusinessOnlyLists() {
+    void validate_RejectsCanonicalTargetNameInAdditionalColumns() {
         AreaOfInterestConfig config = baseConfig();
-        config.setAdditionalColumns(List.of("category"));
-        config.setBusinessOnlyPersistColumns(List.of("category"));
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class, config::validate);
-        assertTrue(ex.getMessage().contains("category"));
-    }
-
-    @Test
-    void validate_RejectsCanonicalTargetNameInBusinessOnlyPersistColumns() {
-        AreaOfInterestConfig config = baseConfig();
-        config.setBusinessOnlyPersistColumns(List.of("custom_metric", "area"));
+        config.setAdditionalColumns(List.of("area"));
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, config::validate);
         assertTrue(ex.getMessage().contains("area"));

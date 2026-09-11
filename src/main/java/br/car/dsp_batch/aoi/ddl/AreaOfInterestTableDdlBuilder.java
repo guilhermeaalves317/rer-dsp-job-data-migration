@@ -75,14 +75,11 @@ public class AreaOfInterestTableDdlBuilder {
 
     private List<String> buildColumnDefinitions(AreaOfInterestTableMetadata metadata,
                                                 boolean includeGeometry,
-                                                boolean includeBusinessOnly) {
+                                                boolean includeBusinessExtras) {
         List<String> columnDefinitions = new ArrayList<>();
         Set<String> emittedTargetColumns = new LinkedHashSet<>();
 
         for (ColumnMetadata column : metadata.columns()) {
-            if (!includeBusinessOnly && metadata.isBusinessOnlySourceColumn(column.name())) {
-                continue;
-            }
             if (column.geometry()) {
                 if (!includeGeometry) {
                     continue;
@@ -106,7 +103,7 @@ public class AreaOfInterestTableDdlBuilder {
             String ddlType = resolveDdlType(targetColumnName, column);
             columnDefinitions.add(quote(targetColumnName) + " " + ddlType);
         }
-        if (includeBusinessOnly) {
+        if (includeBusinessExtras) {
             if (!emittedTargetColumns.contains(AreaOfInterestConfig.AREA_COLUMN)
                     && metadata.totalAreaSourceColumn() == null) {
                 columnDefinitions.add(quote(AreaOfInterestConfig.AREA_COLUMN) + " numeric");

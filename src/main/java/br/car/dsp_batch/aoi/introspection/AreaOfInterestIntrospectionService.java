@@ -84,9 +84,7 @@ public class AreaOfInterestIntrospectionService {
         GeometryInfo geometryInfo = resolveGeometry(sourceJdbc, source, allColumns, config.getGeometryColumn());
 
         List<String> additionalColumns = normalizeOptionalColumns(config.getAdditionalColumns());
-        List<String> businessOnlyColumns = normalizeOptionalColumns(config.getBusinessOnlyPersistColumns());
         validateOptionalColumnsExist(allColumns, additionalColumns, "additional-columns");
-        validateOptionalColumnsExist(allColumns, businessOnlyColumns, "business-only-persist-columns");
         rejectCanonicalTargetNameCollisions(
                 source,
                 allColumns,
@@ -96,8 +94,7 @@ public class AreaOfInterestIntrospectionService {
                 territoryLevel3Column,
                 totalAreaColumn,
                 geometryInfo.columnName(),
-                additionalColumns,
-                businessOnlyColumns);
+                additionalColumns);
 
         int srid = resolveSrid(sourceJdbc, source, geometryInfo, config.getSrid());
         requireExistingTargetCreatedAtTimestamptz(targetJdbcTemplate, target);
@@ -111,8 +108,7 @@ public class AreaOfInterestIntrospectionService {
                 territoryLevel3Column,
                 totalAreaColumn,
                 geometryInfo.columnName(),
-                additionalColumns,
-                businessOnlyColumns);
+                additionalColumns);
         List<IndexMetadata> indexes = filterIndexes(
                 fetchIndexes(sourceJdbc, source), migratedColumns);
 
@@ -150,7 +146,6 @@ public class AreaOfInterestIntrospectionService {
                 geometryInfo.columnName(),
                 srid,
                 migratedColumns,
-                businessOnlyColumns,
                 indexes,
                 config.getWhereClause()
         );
@@ -191,8 +186,7 @@ public class AreaOfInterestIntrospectionService {
                                                        String territoryLevel3Column,
                                                        String totalAreaColumn,
                                                        String geometryColumn,
-                                                       List<String> additionalColumns,
-                                                       List<String> businessOnlyColumns) {
+                                                       List<String> additionalColumns) {
         Map<String, ColumnMetadata> byName = new LinkedHashMap<>();
         for (ColumnMetadata column : allColumns) {
             byName.put(column.name(), column);
@@ -209,7 +203,6 @@ public class AreaOfInterestIntrospectionService {
             orderedNames.add(totalAreaColumn);
         }
         orderedNames.addAll(additionalColumns);
-        orderedNames.addAll(businessOnlyColumns);
         orderedNames.add(geometryColumn);
 
         Set<String> seen = new LinkedHashSet<>();
@@ -286,8 +279,7 @@ public class AreaOfInterestIntrospectionService {
                                                      String territoryLevel3Column,
                                                      String totalAreaColumn,
                                                      String geometryColumn,
-                                                     List<String> additionalColumns,
-                                                     List<String> businessOnlyColumns) {
+                                                     List<String> additionalColumns) {
         rejectReservedNameCollision(table, allColumns, ID_COLUMN, primaryKey, "primary-key");
         rejectReservedNameCollision(
                 table, allColumns, CREATED_AT_COLUMN, creationDateColumn, "creation-date-column");
@@ -312,14 +304,6 @@ public class AreaOfInterestIntrospectionService {
                                 + table.qualified() + ".");
             }
         }
-        for (String businessOnlyColumn : businessOnlyColumns) {
-            if (AreaOfInterestConfig.CANONICAL_TARGET_COLUMNS.contains(businessOnlyColumn)) {
-                throw new IllegalStateException(
-                        "business-only-persist-columns entry '" + businessOnlyColumn
-                                + "' collides with a canonical target column on "
-                                + table.qualified() + ".");
-            }
-        }
 
         Set<String> migrated = new LinkedHashSet<>();
         migrated.add(primaryKey);
@@ -333,7 +317,6 @@ public class AreaOfInterestIntrospectionService {
         }
         migrated.add(geometryColumn);
         migrated.addAll(additionalColumns);
-        migrated.addAll(businessOnlyColumns);
 
         Set<String> mappedTargets = AreaOfInterestConfig.CANONICAL_TARGET_COLUMNS;
         for (String sourceName : migrated) {

@@ -16,7 +16,7 @@ import java.util.Set;
  * <p>Mandatory source columns map to fixed target names on DSP
  * ({@code id}, {@code created_at}, {@code updated_at}, {@code territory_level_3_id},
  * {@code area}, {@code geom}). Optional extras in {@code additional-columns} go to business +
- * geo-target. Optional columns in {@code business-only-persist-columns} are written only to dsp-db.
+ * geo-target.
  */
 @Getter
 @Setter
@@ -48,8 +48,6 @@ public class AreaOfInterestConfig {
     private String geometryColumn;
     /** Extra source columns migrated to business + geo-target (same name on target). */
     private List<String> additionalColumns = new ArrayList<>();
-    /** Extra columns migrated only to dsp-db (same name on target). */
-    private List<String> businessOnlyPersistColumns = new ArrayList<>();
     private String whereClause = "1=1";
     private Integer srid;
     private String layerName;
@@ -94,19 +92,12 @@ public class AreaOfInterestConfig {
         validateOptionalColumnList(
                 additionalColumns,
                 "additional-columns",
-                Set.of(),
-                true);
-        validateOptionalColumnList(
-                businessOnlyPersistColumns,
-                "business-only-persist-columns",
-                normalizedOptionalColumns(additionalColumns),
-                false);
+                Set.of());
     }
 
     private void validateOptionalColumnList(List<String> columns,
                                             String fieldName,
-                                            Set<String> forbiddenDuplicates,
-                                            boolean validateAgainstBusinessOnly) {
+                                            Set<String> forbiddenDuplicates) {
         if (columns == null || columns.isEmpty()) {
             return;
         }
@@ -114,9 +105,6 @@ public class AreaOfInterestConfig {
         Set<String> requiredSource = requiredSourceColumns();
 
         Set<String> forbidden = new LinkedHashSet<>(forbiddenDuplicates);
-        if (validateAgainstBusinessOnly) {
-            forbidden.addAll(normalizedOptionalColumns(businessOnlyPersistColumns));
-        }
 
         Set<String> seen = new LinkedHashSet<>();
         for (String raw : columns) {

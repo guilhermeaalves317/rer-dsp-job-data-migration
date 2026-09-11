@@ -18,7 +18,7 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildGeoCreateTable_UsesCanonicalTargetColumns() {
-        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadata();
 
         String ddl = builder.buildGeoCreateTable(metadata);
 
@@ -37,7 +37,7 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildGeoCreateTable_ForcesVarcharIdsEvenWhenSourceIsBigint() {
-        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadata();
 
         String geoDdl = builder.buildGeoCreateTable(metadata);
         String businessDdl = builder.buildBusinessCreateTable(metadata);
@@ -51,19 +51,19 @@ class AreaOfInterestTableDdlBuilderTest {
     }
 
     @Test
-    void buildGeoCreateTable_ExcludesBusinessOnlyColumns() {
-        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of("custom_metric"));
+    void buildGeoCreateTable_IncludesAdditionalColumnsOnBothTargets() {
+        AreaOfInterestTableMetadata metadata = sampleMetadataWithAdditionalColumn("custom_metric");
 
         String geoDdl = builder.buildGeoCreateTable(metadata);
         String businessDdl = builder.buildBusinessCreateTable(metadata);
 
-        assertTrue(!geoDdl.contains("\"custom_metric\""));
+        assertTrue(geoDdl.contains("\"custom_metric\""));
         assertTrue(businessDdl.contains("\"custom_metric\""));
     }
 
     @Test
     void buildBusinessCreateTable_AddsBoundaryBoxAndCentroid() {
-        AreaOfInterestTableMetadata metadata = sampleMetadata(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadata();
 
         String ddl = builder.buildBusinessCreateTable(metadata);
 
@@ -77,7 +77,7 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildBusinessCreateTable_AddsAreaColumnWhenSourceOmitsTotalArea() {
-        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutTotalArea(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutTotalArea();
 
         String ddl = builder.buildBusinessCreateTable(metadata);
 
@@ -86,7 +86,7 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildBusinessCreateTable_AlwaysIncludesUpdatedAtWhenSourceOmitsIt() {
-        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutSourceUpdatedAt(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutSourceUpdatedAt();
 
         String ddl = builder.buildBusinessCreateTable(metadata);
 
@@ -96,7 +96,7 @@ class AreaOfInterestTableDdlBuilderTest {
 
     @Test
     void buildBusinessTargetStatements_IncludesUpdatedAtIndexOnBusinessTarget() {
-        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutSourceUpdatedAt(List.of());
+        AreaOfInterestTableMetadata metadata = sampleMetadataWithoutSourceUpdatedAt();
 
         List<String> statements = builder.buildBusinessTargetStatements(metadata);
 
@@ -104,19 +104,7 @@ class AreaOfInterestTableDdlBuilderTest {
         assertTrue(statements.stream().anyMatch(sql -> sql.contains("_business_updated_at")));
     }
 
-    private static AreaOfInterestTableMetadata sampleMetadataWithoutTotalArea(
-            List<String> businessOnlySourceColumns
-    ) {
-        List<ColumnMetadata> columns = new java.util.ArrayList<>(List.of(
-                new ColumnMetadata("id", "int8", null, null, null, false, false),
-                new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
-                new ColumnMetadata("updated_at", "timestamptz", null, null, null, false, false),
-                new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
-                new ColumnMetadata("geom", "geometry", null, null, null, true, true)
-        ));
-        for (String businessOnly : businessOnlySourceColumns) {
-            columns.add(new ColumnMetadata(businessOnly, "numeric", null, null, null, true, false));
-        }
+    private static AreaOfInterestTableMetadata sampleMetadataWithoutTotalArea() {
         return new AreaOfInterestTableMetadata(
                 "area_of_interest",
                 "chile-conservation-units",
@@ -129,26 +117,19 @@ class AreaOfInterestTableDdlBuilderTest {
                 null,
                 "geom",
                 4674,
-                columns,
-                businessOnlySourceColumns,
+                List.of(
+                        new ColumnMetadata("id", "int8", null, null, null, false, false),
+                        new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
+                        new ColumnMetadata("updated_at", "timestamptz", null, null, null, false, false),
+                        new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
+                        new ColumnMetadata("geom", "geometry", null, null, null, true, true)
+                ),
                 List.of(),
                 "1=1"
         );
     }
 
-    private static AreaOfInterestTableMetadata sampleMetadataWithoutSourceUpdatedAt(
-            List<String> businessOnlySourceColumns
-    ) {
-        List<ColumnMetadata> columns = new java.util.ArrayList<>(List.of(
-                new ColumnMetadata("id", "int8", null, null, null, false, false),
-                new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
-                new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
-                new ColumnMetadata("total_area_ha", "numeric", null, null, null, false, false),
-                new ColumnMetadata("geom", "geometry", null, null, null, true, true)
-        ));
-        for (String businessOnly : businessOnlySourceColumns) {
-            columns.add(new ColumnMetadata(businessOnly, "numeric", null, null, null, true, false));
-        }
+    private static AreaOfInterestTableMetadata sampleMetadataWithoutSourceUpdatedAt() {
         return new AreaOfInterestTableMetadata(
                 "area_of_interest",
                 "chile-conservation-units",
@@ -161,25 +142,41 @@ class AreaOfInterestTableDdlBuilderTest {
                 "total_area_ha",
                 "geom",
                 4674,
-                columns,
-                businessOnlySourceColumns,
+                List.of(
+                        new ColumnMetadata("id", "int8", null, null, null, false, false),
+                        new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
+                        new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
+                        new ColumnMetadata("total_area_ha", "numeric", null, null, null, false, false),
+                        new ColumnMetadata("geom", "geometry", null, null, null, true, true)
+                ),
                 List.of(),
                 "1=1"
         );
     }
 
-    private static AreaOfInterestTableMetadata sampleMetadata(List<String> businessOnlySourceColumns) {
-        List<ColumnMetadata> columns = new java.util.ArrayList<>(List.of(
-                new ColumnMetadata("id", "int8", null, null, null, false, false),
-                new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
-                new ColumnMetadata("updated_at", "timestamptz", null, null, null, false, false),
-                new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
-                new ColumnMetadata("total_area_ha", "numeric", null, null, null, false, false),
-                new ColumnMetadata("geom", "geometry", null, null, null, true, true)
-        ));
-        for (String businessOnly : businessOnlySourceColumns) {
-            columns.add(new ColumnMetadata(businessOnly, "numeric", null, null, null, true, false));
-        }
+    private static AreaOfInterestTableMetadata sampleMetadataWithAdditionalColumn(String additionalColumn) {
+        List<ColumnMetadata> columns = new java.util.ArrayList<>(sampleMetadata().columns());
+        columns.add(new ColumnMetadata(additionalColumn, "numeric", null, null, null, true, false));
+        AreaOfInterestTableMetadata base = sampleMetadata();
+        return new AreaOfInterestTableMetadata(
+                base.syncKey(),
+                base.layerName(),
+                base.sourceTable(),
+                base.targetTable(),
+                base.primaryKeyColumn(),
+                base.creationDateColumn(),
+                base.updatedAtColumn(),
+                base.territoryLevel3SourceColumn(),
+                base.totalAreaSourceColumn(),
+                base.geometryColumn(),
+                base.srid(),
+                columns,
+                base.indexes(),
+                base.whereClause()
+        );
+    }
+
+    private static AreaOfInterestTableMetadata sampleMetadata() {
         return new AreaOfInterestTableMetadata(
                 "area_of_interest",
                 "chile-conservation-units",
@@ -192,8 +189,14 @@ class AreaOfInterestTableDdlBuilderTest {
                 "total_area_ha",
                 "geom",
                 4674,
-                columns,
-                businessOnlySourceColumns,
+                List.of(
+                        new ColumnMetadata("id", "int8", null, null, null, false, false),
+                        new ColumnMetadata("creation_date", "timestamptz", null, null, null, false, false),
+                        new ColumnMetadata("updated_at", "timestamptz", null, null, null, false, false),
+                        new ColumnMetadata("territory_level_3_fk", "int8", null, null, null, false, false),
+                        new ColumnMetadata("total_area_ha", "numeric", null, null, null, false, false),
+                        new ColumnMetadata("geom", "geometry", null, null, null, true, true)
+                ),
                 List.of(),
                 "1=1"
         );
