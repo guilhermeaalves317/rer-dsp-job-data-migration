@@ -294,7 +294,8 @@ public class AreaOfInterestIntrospectionService {
             rejectReservedNameCollision(
                     table, allColumns, AREA_COLUMN, totalAreaColumn, "total-area-column");
         }
-        rejectGeomNameCollision(table, allColumns, geometryColumn);
+        rejectReservedNameCollision(
+            table, allColumns, GEOMETRY_COLUMN, geometryColumn, "geometry-column");
 
         for (String additionalColumn : additionalColumns) {
             if (AreaOfInterestConfig.CANONICAL_TARGET_COLUMNS.contains(additionalColumn)) {
